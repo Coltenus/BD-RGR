@@ -49,18 +49,14 @@ namespace bd_rgr
                         break;
                     case 2:
                     {
+                        Console.Write("Need debug(true, false): ");
+                        var debug = Convert.ToBoolean(Console.ReadLine());
                         var data = new List<Tuple<string, string, string>>();
-                        // {
-                        //     new Tuple<string, string, string>("vaccination_schedule", "date", ""),
-                        //     new Tuple<string, string, string>("vaccinations", "given_dose", "vaccination_id"),
-                        //     // new Tuple<string, string, string>("patients", "name", "patient_id")
-                        // };
                         Regex regexData = new Regex(@"\w+");
                         while (true)
                         {
-                            Console.Write("Enter data: ");
-                            var dt = Console
-                                .ReadLine(); // vaccination_schedule date one vaccinations given_dose vaccination_id
+                            Console.Write("Enter data(table name, needed column, column for join)\n: ");
+                            var dt = Console.ReadLine();
                             if (dt == string.Empty) break;
                             var _data = regexData.Matches(dt);
                             if (_data.Count < 3) continue;
@@ -91,7 +87,7 @@ namespace bd_rgr
 
                             where = new Tuple<int, string, List<object>>(table, column, values);
                         }
-                        View.PrintDictList(_model.FindSeveralTables(data, where), columns);
+                        View.PrintDictList(_model.FindInTables(data, where, debug), columns);
                     }
                         break;
                     case 3:
@@ -100,7 +96,7 @@ namespace bd_rgr
                         var column = Console.ReadLine();
                         Console.Write("Enter value: ");
                         var value = Console.ReadLine();
-                        View.PrintDict(_model.FindOne(column, value), _model.TableFields);
+                        View.PrintDict(_model.Find(column, value), _model.TableFields);
                     }
                         break;
                     case 4:
@@ -117,11 +113,11 @@ namespace bd_rgr
                             values.Add(value);
                         }
 
-                        View.PrintDictList(_model.FindSome(column, values), _model.TableFields);
+                        View.PrintDictList(_model.Find(column, values), _model.TableFields);
                     }
                         break;
                     case 5:
-                        View.PrintDictList(_model.FindAll(), _model.TableFields);
+                        View.PrintDictList(_model.Find(), _model.TableFields);
                         break;
                     case 6:
                     {
@@ -133,7 +129,7 @@ namespace bd_rgr
                             dict.Add(field, value);
                         }
 
-                        _model.AddOne(dict);
+                        _model.Add(dict);
                     }
                         break;
                     case 7:
@@ -158,7 +154,7 @@ namespace bd_rgr
                             list.Add(dict);
                         }
 
-                        _model.AddSome(list);
+                        _model.Add(list);
                     }
                         break;
                     case 8:
@@ -167,7 +163,7 @@ namespace bd_rgr
                         var column = Console.ReadLine();
                         Console.Write("Enter value: ");
                         var value = Console.ReadLine();
-                        _model.RemoveSome(column, value);
+                        _model.Remove(column, value);
                     }
                         break;
                     case 9:
@@ -176,9 +172,9 @@ namespace bd_rgr
                         var column = Console.ReadLine();
                         Console.Write("Enter value: ");
                         var value = Console.ReadLine();
-                        Console.Write("Greater or less(1, 0): ");
+                        Console.Write("Greater or less(true, false): ");
                         var greater = Convert.ToBoolean(Console.ReadLine());
-                        _model.RemoveSome(column, value, greater);
+                        _model.Remove(column, value, greater);
                     }
                         break;
                     case 10:
@@ -227,7 +223,9 @@ namespace bd_rgr
                     {
                         Console.Write("Enter count of elements: ");
                         var count = Convert.ToUInt32(Console.ReadLine());
-                        _model.GenerateSeries(count);
+                        Console.Write("Need debug(true, false): ");
+                        var debug = Convert.ToBoolean(Console.ReadLine());
+                        _model.GenerateSeries(count, debug);
                     }
                         break;
                 }

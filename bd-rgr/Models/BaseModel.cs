@@ -27,7 +27,7 @@ namespace bd_rgr
         
         public delegate void SetDateAction(ref Dictionary<string, object> item1, ref NpgsqlDataReader item2);
 
-        public abstract void GenerateSeries(uint count);
+        public abstract void GenerateSeries(uint count, bool debug);
         
         private void SetParameters(ref Dictionary<string, object> row, ref NpgsqlDataReader reader)
         {
@@ -137,7 +137,7 @@ namespace bd_rgr
 
         protected int GetMaxId()
         {
-            int id = 1;
+            int id = 0;
             try
             {
                 Connection.Cmd.Connection.Open();
@@ -153,6 +153,10 @@ namespace bd_rgr
                 Console.WriteLine($"{er.MessageText}");
                 Console.WriteLine($"{er.Hint}");
             }
+            catch (InvalidCastException er)
+            {
+                // Console.WriteLine($"{er.Message}");
+            }
             finally
             {
                 Connection.Cmd.Connection.Close();
@@ -161,7 +165,7 @@ namespace bd_rgr
             return id;
         }
 
-        public Dictionary<string, object> FindOne<T>(string column, T value)
+        public Dictionary<string, object> Find<T>(string column, T value)
         {
             Dictionary<string, object> result = new Dictionary<string, object>();
 
@@ -189,7 +193,7 @@ namespace bd_rgr
             return result;
         }
         
-        public List<Dictionary<string, object>> FindSome<T>(string column, in List<T> values)
+        public List<Dictionary<string, object>> Find<T>(string column, in List<T> values)
         {
             List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
             string str_val = GetFormatValues(in values);
@@ -220,7 +224,37 @@ namespace bd_rgr
             return result;
         }
         
-        public List<Dictionary<string, object>> FindSome(string column, in List<string> values)
+        public List<Dictionary<string, object>> Find<T>(string column, T value, bool greater)
+        {
+            List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
+            string sign = "<";
+            if (greater) sign = ">";
+            try
+            {
+                Connection.Cmd.Connection.Open();
+                Connection.Cmd.CommandText = $"SELECT * FROM {TableName} WHERE {column} {sign} {value.ToString()}";
+                var reader = Connection.Cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    Dictionary<string, object> patient = new Dictionary<string, object>();
+                    SetParameters(ref patient, ref reader);
+                    result.Add(patient);
+                }
+            }
+            catch (Npgsql.PostgresException er)
+            {
+                Console.WriteLine($"{er.MessageText}");
+                Console.WriteLine($"{er.Hint}");
+            }
+            finally
+            {
+                Connection.Cmd.Connection.Close();
+            }
+
+            return result;
+        }
+        
+        public List<Dictionary<string, object>> Find(string column, in List<string> values)
         {
             List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
             string str_val = GetFormatValues(in values, $" OR {column} LIKE '%s'", $"{column} LIKE '%s'");
@@ -251,7 +285,7 @@ namespace bd_rgr
             return result;
         }
         
-        public List<Dictionary<string, object>> FindSome(string column, bool value)
+        public List<Dictionary<string, object>> Find(string column, bool value)
         {
             List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
 
@@ -281,7 +315,7 @@ namespace bd_rgr
             return result;
         }
 
-        public List<Dictionary<string, object>> FindSome(string column, in List<DateTime> values)
+        public List<Dictionary<string, object>> Find(string column, in List<DateTime> values)
         {
             List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
             string str_val = GetFormatValues(in values);
@@ -312,7 +346,7 @@ namespace bd_rgr
             return result;
         }
         
-        public List<Dictionary<string, object>> FindAll()
+        public List<Dictionary<string, object>> Find()
         {
             List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
 
@@ -341,7 +375,7 @@ namespace bd_rgr
             return result;
         }
         
-        public void AddOne(Dictionary<string, object> data)
+        public void Add(Dictionary<string, object> data)
         {
             var fields = GetFormatValues(TableFields);
             var values = GetFieldsFormat(in data, in TableFields, ", '%s'", "'%s'");
@@ -364,7 +398,7 @@ namespace bd_rgr
             }
         }
         
-        public void AddSome(List<Dictionary<string, object>> data)
+        public void Add(List<Dictionary<string, object>> data)
         {
             var fields = GetFormatValues(TableFields);
             
@@ -391,7 +425,7 @@ namespace bd_rgr
             }
         }
         
-        public void RemoveSome<T>(string column, T value)
+        public virtual void Remove<T>(string column, T value)
         {
             try
             {
@@ -411,7 +445,7 @@ namespace bd_rgr
             }
         }
         
-        public void RemoveSome<T>(string column, T value, bool greater)
+        public virtual void Remove<T>(string column, T value, bool greater)
         {
             string sign = "<";
             if (greater) sign = ">";
@@ -435,7 +469,7 @@ namespace bd_rgr
         
         public void EditOne<T1, T2>(string column, T1 value, List<string> eColumn, List<T2> newValue)
         {
-            var patient = FindOne(column, value);
+            var patient = Find(column, value);
             
             if(!(eColumn.Count > 0 && eColumn.Count == newValue.Count))
                 return;
@@ -508,8 +542,8 @@ namespace bd_rgr
         /// <param name="where">List of data for WHERE (count of table in data, column name, list of values)</param>
         /// <typeparam name="T">The type of values for WHERE</typeparam>
         /// <returns></returns>
-        public List<Dictionary<string, object>> FindSeveralTables<T>(List<Tuple<string, string, string>> data,
-            Tuple<int, string, List<T>> where)
+        public List<Dictionary<string, object>> FindInTables<T>(List<Tuple<string, string, string>> data,
+            Tuple<int, string, List<T>> where, bool debug = false)
         {
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
@@ -541,6 +575,9 @@ namespace bd_rgr
                           $"FROM {from} " +
                           $"WHERE {joins[where.Item1].Item2}.{where.Item2} in ({where_values}) " +
                           $"GROUP BY {str_groups}";
+            
+            if(debug)
+                Console.WriteLine(request);
             
             try
             {

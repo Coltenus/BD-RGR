@@ -14,7 +14,7 @@ namespace bd_rgr
             };
         }
         
-        public override void GenerateSeries(uint count)
+        public override void GenerateSeries(uint count, bool debug)
         {
             int max_id = GetMaxId();
 
@@ -39,6 +39,9 @@ namespace bd_rgr
                           $"FROM GENERATE_SERIES({max_id + 1}, {max_id + count})) AS t1\n" +
                           $"GROUP BY t1.vaccine_id, t1.name, t1.manufact, t1.type, t1.dosage";
             
+            if(debug)
+                Console.WriteLine(command);
+            
             try
             {
                 Connection.Cmd.Connection.Open();
@@ -54,6 +57,28 @@ namespace bd_rgr
             {
                 Connection.Cmd.Connection.Close();
             }
+        }
+
+        public override void Remove<T>(string column, T value)
+        {
+            var list = Find(column, new List<T>() { value });
+            var model = new VaccinationsModel(Connection);
+            foreach (var item in list)
+            {
+                model.Remove(TableFields[0], item[TableFields[0]]);
+            }
+            base.Remove(column, value);
+        }
+
+        public override void Remove<T>(string column, T value, bool greater)
+        {
+            var list = Find(column, value, greater);
+            var model = new VaccinationsModel(Connection);
+            foreach (var item in list)
+            {
+                model.Remove(TableFields[0], item[TableFields[0]]);
+            }
+            base.Remove(column, value, greater);
         }
     }
 }
