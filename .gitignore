@@ -4,6 +4,7 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 .idea/
+*.docx
 ~$*.docx
 bd-rgr/bin/
 bd-rgr/obj/
